@@ -24,10 +24,7 @@ class Config:
         missing_vars = [
             var
             for var in [
-                "TODOIST_API_KEY",
-                "GOOGLE_CLIENT_ID",
-                "GOOGLE_CLIENT_SECRET",
-                "GOOGLE_REFRESH_TOKEN",
+                "TODOIST_API_KEY"
             ]
             if not os.getenv(var)
         ]
