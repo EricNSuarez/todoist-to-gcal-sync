@@ -1,2 +1,12 @@
+# Enviroment 
 .venv
 .env
+
+# Cache and logs
+__pycache__
+sync.log
+
+# Secrets
+credentials.json
+secrets.json
+token.json

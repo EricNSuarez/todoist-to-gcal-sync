@@ -9,11 +9,6 @@ class Config:
     # Retrieve Todoist API key from environment variables
     TODOIST_API_KEY = os.getenv("TODOIST_API_KEY")
 
-    # Retrieve Google Calendar API credentials from environment variables
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-    GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
-
     SCOPES = [
         "https://www.googleapis.com/auth/calendar.app.created",
         "https://www.googleapis.com/auth/calendar.events.owned",

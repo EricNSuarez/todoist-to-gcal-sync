@@ -46,7 +46,11 @@ This Python script synchronizes tasks from Todoist into Google Calendar, adding 
     GOOGLE_REFRESH_TOKEN=your_google_refresh_token
     ```
 
-4. **Run the Script:**
+4. **Add Google API Credentials:**
+
+    Place your Google API token and/or credentials JSON files in the root directory of the project. Ensure these files are named appropriately (e.g., `token.json` for the token file and `credentials.json` for the credentials file).
+
+5. **Run the Script:**
 
     Execute the script to start synchronizing tasks from Todoist to Google Calendar.
 
@@ -84,4 +88,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Contact
 
-For questions or suggestions, please open an issue in the repository or contact the project maintainer at your-email@example.com.
+For questions or suggestions, please open an issue in the repository or contact the project maintainer at corazonrojodepapel@gmail.com.
