@@ -68,3 +68,32 @@ def add_reminder(event, method="popup", minutes_before_start=10):
     }
     event["reminders"] = reminder
     return event
+
+
+def create_calendar(service, calendar_name):
+    """
+    Creates a new Google Calendar with the given name, ensuring it's not a duplicate.
+    
+    :param service: Authenticated Google Calendar API service instance.
+    :param calendar_name: The name of the calendar to be created.
+    :return: The created calendar or the existing calendar with the same name.
+    """
+    try:
+        # Check if the calendar already exists
+        calendar_list = service.calendarList().list().execute()
+        for calendar_entry in calendar_list['items']:
+            if calendar_entry['summary'] == calendar_name:
+                logging.info(f"Calendar '{calendar_name}' already exists.")
+                return calendar_entry
+        
+        # Create a new calendar if not found
+        calendar = {
+            'summary': calendar_name,
+            'timeZone': 'UTC'
+        }
+        created_calendar = service.calendars().insert(body=calendar).execute()
+        logging.info(f"Calendar created: {created_calendar['summary']}")
+        return created_calendar
+    except HttpError as error:
+        logging.error(f"An error occurred while creating a calendar: {error}")
+        raise

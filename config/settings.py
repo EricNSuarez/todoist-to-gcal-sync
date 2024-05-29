@@ -13,6 +13,7 @@ class Config:
         "https://www.googleapis.com/auth/calendar.app.created",
         "https://www.googleapis.com/auth/calendar.events.owned",
         "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/calendar.calendarlist"
     ]
 
     @staticmethod
