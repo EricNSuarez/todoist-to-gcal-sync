@@ -4,6 +4,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 from src.authentication import get_google_credentials
+
+from dateutil.parser import parse
 import logging
 
 # Configure logging
@@ -33,17 +35,26 @@ def create_gcal_service():
 
 def create_event(service, calendar_id, event):
     """
-    Creates an event in Google Calendar.
-
+    Creates an event in Google Calendar, avoiding duplicate events.
+    
     :param service: Authenticated Google Calendar API service instance.
     :param calendar_id: ID of the calendar where the event will be created.
     :param event: Dictionary containing event details.
     :return: The created event.
     """
     try:
-        created_event = (
-            service.events().insert(calendarId=calendar_id, body=event).execute()
-        )
+        # Check if the event already exists to avoid duplicates
+        existing_events = service.events().list(calendarId=calendar_id).execute().get('items', [])
+        for existing_event in existing_events:
+            if (
+                existing_event['summary'] == event['summary'] and
+                parse(existing_event['start']['dateTime']) == parse(event['start']['dateTime']) and
+                parse(existing_event['end']['dateTime']) == parse(event['end']['dateTime'])
+            ):
+                logging.info(f"Duplicate event detected: {existing_event.get('htmlLink')}")
+                return existing_event
+
+        created_event = service.events().insert(calendarId=calendar_id, body=event).execute()
         logging.info(f"Event created: {created_event.get('htmlLink')}")
         return created_event
     except HttpError as error:
