@@ -3,6 +3,7 @@ from src.todoist_client import get_todoist_api, get_tasks
 import logging
 import re
 from datetime import datetime, timedelta
+from config.settings import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, filename='sync.log', filemode='a',
@@ -16,7 +17,7 @@ def extract_duration(task_summary):
     :param task_summary: The summary of the task.
     :return: Duration in minutes as an integer.
     """
-    duration = 60  # Default duration in minutes
+    duration = None
     match = re.search(r'\[(\d+)(h|hours|horas|hs)?\]', task_summary, re.IGNORECASE)
     if match:
         value = int(match.group(1))
@@ -26,9 +27,11 @@ def extract_duration(task_summary):
             duration = value
     return duration
 
-def sync_todoist_to_gcal():
+def sync_todoist_to_gcal(default_event_duration=30):
     """
     Syncs Todoist tasks to Google Calendar.
+
+    :param default_event_duration: The default duration for tasks/events in minutes.
     """
     try:
         # Initialize services
@@ -53,19 +56,28 @@ def sync_todoist_to_gcal():
                 start_time = datetime.fromisoformat(task.due.datetime).time().isoformat()
             
             start_datetime = datetime.fromisoformat(due_date + 'T' + start_time)
+
+            # Extract duration from task properties, task content or set as default
             duration = extract_duration(task.content)
-            end_datetime = start_datetime + timedelta(minutes=duration)
+            if task.duration and task.duration.unit == 'minute':
+                duration = task.duration.amount
+            if duration is None:
+                duration = default_event_duration
             
+            end_datetime = start_datetime + timedelta(minutes=duration)
+
+            timezone = task.due.timezone or Config.TIME_ZONE
+
             event = {
                 'summary': task.content,
                 'description': task.description,
                 'start': {
                     'dateTime': start_datetime.isoformat(),
-                    'timeZone': 'UTC',
+                    'timeZone': timezone,
                 },
                 'end': {
                     'dateTime': end_datetime.isoformat(),
-                    'timeZone': 'UTC',
+                    'timeZone': timezone,
                 },
             }
             event_with_reminder = add_reminder(event, 'popup', 15)

@@ -8,6 +8,8 @@ from src.authentication import get_google_credentials
 from dateutil.parser import parse
 import logging
 
+from config.settings import Config
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -46,10 +48,19 @@ def create_event(service, calendar_id, event):
         # Check if the event already exists to avoid duplicates
         existing_events = service.events().list(calendarId=calendar_id).execute().get('items', [])
         for existing_event in existing_events:
+            valid_summary = existing_event['summary'] == event['summary']
+            valid_start_datetime = parse(event['start']['dateTime']) == parse(existing_event['start']['dateTime']).replace(tzinfo=None)
+            valid_end_datetime = parse(event['end']['dateTime']) == parse(existing_event['end']['dateTime']).replace(tzinfo=None)
+            valid_tzones = (
+                existing_event['start']['timeZone'] == event['start']['timeZone'] and 
+                existing_event['end']['timeZone'] == event['end']['timeZone']
+            )
+
             if (
-                existing_event['summary'] == event['summary'] and
-                parse(existing_event['start']['dateTime']) == parse(event['start']['dateTime']) and
-                parse(existing_event['end']['dateTime']) == parse(event['end']['dateTime'])
+                valid_summary and
+                valid_start_datetime and
+                valid_end_datetime and 
+                valid_tzones
             ):
                 logging.info(f"Duplicate event detected: {existing_event.get('htmlLink')}")
                 return existing_event
@@ -100,7 +111,7 @@ def create_calendar(service, calendar_name):
         # Create a new calendar if not found
         calendar = {
             'summary': calendar_name,
-            'timeZone': 'UTC'
+            'timeZone': Config.TIME_ZONE
         }
         created_calendar = service.calendars().insert(body=calendar).execute()
         logging.info(f"Calendar created: {created_calendar['summary']}")

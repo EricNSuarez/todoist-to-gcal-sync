@@ -37,13 +37,11 @@ This Python script synchronizes tasks from Todoist into Google Calendar, adding 
 
 3. **Set Environment Variables:**
 
-    Create a `.env` file in the root directory of the project and add your Todoist and Google Calendar API credentials:
+    Create a `.env` file in the root directory of the project and add your timezone:
 
     ```
     TODOIST_API_KEY=your_todoist_api_key
-    GOOGLE_CLIENT_ID=your_google_client_id
-    GOOGLE_CLIENT_SECRET=your_google_client_secret
-    GOOGLE_REFRESH_TOKEN=your_google_refresh_token
+    TIME_ZONE=valid_IANA_timezone
     ```
 
 4. **Add Google API Credentials:**

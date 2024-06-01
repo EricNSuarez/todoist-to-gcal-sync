@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # Load environment variables from a .env file if present
 load_dotenv()
@@ -8,6 +9,12 @@ load_dotenv()
 class Config:
     # Retrieve Todoist API key from environment variables
     TODOIST_API_KEY = os.getenv("TODOIST_API_KEY")
+    TIME_ZONE = os.getenv("TIME_ZONE")
+
+    try:
+        ZoneInfo(TIME_ZONE)
+    except ZoneInfoNotFoundError:
+        raise EnvironmentError(f"Invalid timezone: {TIME_ZONE}")
 
     SCOPES = [
         "https://www.googleapis.com/auth/calendar.app.created",
@@ -25,7 +32,8 @@ class Config:
         missing_vars = [
             var
             for var in [
-                "TODOIST_API_KEY"
+                "TODOIST_API_KEY",
+                "TIME_ZONE"
             ]
             if not os.getenv(var)
         ]
@@ -33,7 +41,6 @@ class Config:
             raise EnvironmentError(
                 f"Missing required environment variables: {', '.join(missing_vars)}"
             )
-
 
 # Validate configuration
 Config.validate()
