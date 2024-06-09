@@ -1,14 +1,10 @@
-from google.auth.transport.requests import Request
-
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google.auth.transport.requests import Request
-from src.authentication import get_google_credentials
-
-from dateutil.parser import parse
 import logging
-
+from dateutil.parser import parse
+from googleapiclient.discovery import build, Resource
+from googleapiclient.errors import HttpError
+from src.authentication import get_google_credentials
 from config.settings import Config
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(
@@ -18,31 +14,49 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-
-def create_gcal_service():
+def create_gcal_service() -> Resource:
     """
     Creates and returns the Google Calendar API service.
+
+    This function uses the credentials obtained from `get_google_credentials` to create
+    an instance of the Google Calendar API service. If there is an error during the creation 
+    of the service, it logs the error and raises an exception.
+
+    Returns:
+        Resource: An instance of the Google Calendar API service.
+
+    Raises:
+        HttpError: If an error occurs while creating the Google Calendar service.
     """
     credentials = get_google_credentials()
+    
+    if not credentials:
+        logging.error("Failed to obtain Google credentials.")
+        raise ValueError("Google credentials are not available.")
+
     try:
+        # Build the Google Calendar service using the obtained credentials
         service = build("calendar", "v3", credentials=credentials)
         logging.info("Google Calendar service created successfully.")
         return service
     except HttpError as error:
-        logging.error(
-            f"An error occurred while creating Google Calendar service: {error}"
-        )
+        logging.error(f"An error occurred while creating Google Calendar service: {error}")
         raise
 
 
-def create_event(service, calendar_id, event):
+def create_event(service: Resource, calendar_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
     """
     Creates an event in Google Calendar, avoiding duplicate events.
-    
-    :param service: Authenticated Google Calendar API service instance.
-    :param calendar_id: ID of the calendar where the event will be created.
-    :param event: Dictionary containing event details.
-    :return: The created event.
+
+    Parameters
+        service (Resource): Authenticated Google Calendar API service instance.
+        calendar_id (str): ID of the calendar where the event will be created.
+        event (Dict[str, Any]): Dictionary containing event details.
+
+    Returns:
+        Dict[str, Any]: The created event as a dictionary.
+    Raises:
+        HttpError: If an error occurs while creating the event.
     """
     try:
         # Check if the event already exists to avoid duplicates
@@ -56,15 +70,11 @@ def create_event(service, calendar_id, event):
                 existing_event['end']['timeZone'] == event['end']['timeZone']
             )
 
-            if (
-                valid_summary and
-                valid_start_datetime and
-                valid_end_datetime and 
-                valid_tzones
-            ):
+            if valid_summary and valid_start_datetime and valid_end_datetime and valid_tzones:
                 logging.info(f"Duplicate event detected: {existing_event.get('htmlLink')}")
                 return existing_event
 
+        # Create the event if no duplicates are found
         created_event = service.events().insert(calendarId=calendar_id, body=event).execute()
         logging.info(f"Event created: {created_event.get('htmlLink')}")
         return created_event
@@ -73,14 +83,17 @@ def create_event(service, calendar_id, event):
         raise
 
 
-def add_reminder(event, method="popup", minutes_before_start=10):
+def add_reminder(event: Dict[str, Any], method: str = "popup", minutes_before_start: int = 10) -> Dict[str, Any]:
     """
     Adds a reminder to the event.
 
-    :param event: Dictionary containing event details.
-    :param method: Method of reminder ('email', 'popup').
-    :param minutes_before_start: Minutes before the event start to trigger the reminder.
-    :return: Updated event dictionary with reminder.
+    Parameters:
+        event (Dict[str, Any]): Dictionary containing event details.
+        method (str): Method of reminder ('email', 'popup').
+        minutes_before_start (int): Minutes before the event start to trigger the reminder.
+    
+    Returns:
+        Dict[str, Any]: Updated event dictionary with reminder.
     """
     reminder = {
         "useDefault": False,
@@ -92,13 +105,19 @@ def add_reminder(event, method="popup", minutes_before_start=10):
     return event
 
 
-def create_calendar(service, calendar_name):
+def create_calendar(service: Resource, calendar_name: str) -> Dict[str, Any]:
     """
     Creates a new Google Calendar with the given name, ensuring it's not a duplicate.
     
-    :param service: Authenticated Google Calendar API service instance.
-    :param calendar_name: The name of the calendar to be created.
-    :return: The created calendar or the existing calendar with the same name.
+    Parameters:
+        service (Resource): Authenticated Google Calendar API service instance.
+        calendar_name (str): The name of the calendar to be created.
+    
+    Returns:
+        Dict[str, Any]: The created calendar or the existing calendar with the same name.
+    
+    Raises:
+        HttpError: If an error occurs while creating the calendar.
     """
     try:
         # Check if the calendar already exists
