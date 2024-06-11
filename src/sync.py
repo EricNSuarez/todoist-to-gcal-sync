@@ -1,6 +1,6 @@
 import logging
 import re
-from src.gcal_client import create_gcal_service, create_event, add_reminder, create_calendar
+from src.gcal_client import create_gcal_service, add_reminder, create_calendar, sync_event
 from src.todoist_client import get_todoist_api, get_tasks
 from datetime import datetime, timedelta
 from typing import Optional
@@ -97,7 +97,7 @@ def sync_todoist_to_gcal(default_event_duration: int = 30) -> None:
                 },
             }
             event_with_reminder = add_reminder(event, 'popup', 15)
-            created_event = create_event(gcal_service, calendar['id'], event_with_reminder)
+            created_event = sync_event(gcal_service, calendar['id'], event_with_reminder)
             print(f"Created or existing event: {created_event['htmlLink']}")
         
         logging.info("Sync completed successfully.")

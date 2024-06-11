@@ -46,7 +46,7 @@ def create_gcal_service() -> Resource:
 
 def create_event(service: Resource, calendar_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Creates an event in Google Calendar, avoiding duplicate events.
+    Creates an event in Google Calendar.
 
     Parameters
         service (Resource): Authenticated Google Calendar API service instance.
@@ -55,31 +55,89 @@ def create_event(service: Resource, calendar_id: str, event: Dict[str, Any]) -> 
 
     Returns:
         Dict[str, Any]: The created event as a dictionary.
+
     Raises:
         HttpError: If an error occurs while creating the event.
     """
     try:
-        # Check if the event already exists to avoid duplicates
-        existing_events = service.events().list(calendarId=calendar_id).execute().get('items', [])
-        for existing_event in existing_events:
-            valid_summary = existing_event['summary'] == event['summary']
-            valid_start_datetime = parse(event['start']['dateTime']) == parse(existing_event['start']['dateTime']).replace(tzinfo=None)
-            valid_end_datetime = parse(event['end']['dateTime']) == parse(existing_event['end']['dateTime']).replace(tzinfo=None)
-            valid_tzones = (
-                existing_event['start']['timeZone'] == event['start']['timeZone'] and 
-                existing_event['end']['timeZone'] == event['end']['timeZone']
-            )
-
-            if valid_summary and valid_start_datetime and valid_end_datetime and valid_tzones:
-                logging.info(f"Duplicate event detected: {existing_event.get('htmlLink')}")
-                return existing_event
-
-        # Create the event if no duplicates are found
+        # Create the event
         created_event = service.events().insert(calendarId=calendar_id, body=event).execute()
         logging.info(f"Event created: {created_event.get('htmlLink')}")
         return created_event
     except HttpError as error:
         logging.error(f"An error occurred while creating an event: {error}")
+        raise
+
+
+def update_event(service: Resource, calendar_id: str, event_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Updates an existing event in Google Calendar.
+    
+    Parameters:
+        service (Resource): Authenticated Google Calendar API service instance.
+        calendar_id (str): ID of the calendar where the event will be updated.
+        event_id (str): ID of the event to update.
+        event (Dict[str, Any]): Dictionary containing updated event details.
+    
+    Return:
+        Dict[str, Any]: The updated event.
+
+    Raises:
+        HttpError: If an error occurs while creating the event.
+    """
+    try:
+        updated_event = service.events().update(calendarId=calendar_id, eventId=event_id, body=event).execute()
+        logging.info(f"Event updated: {updated_event.get('htmlLink')}")
+        return updated_event
+    except HttpError as error:
+        logging.error(f"An error occurred while updating an event: {error}")
+        raise
+
+
+def sync_event(service: Resource, calendar_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Syncs an event by either creating a new event or updating an existing one if necessary. 
+    
+    Parameters:
+        service (Resource): Authenticated Google Calendar API service instance.
+        calendar_id (str): ID of the calendar where the event will be created or updated.
+        event (Dict[str, Any]): Dictionary containing event details.
+    
+    Return:
+        Dict[str, Any]: The created, already existing or updated event.
+
+    Raise:
+        HttpError: If an error occurs while creating the event.
+    """
+    try:
+        new_start = parse(event['start']['dateTime']).replace(tzinfo=None)
+        new_end = parse(event['end']['dateTime']).replace(tzinfo=None)
+        existing_events = service.events().list(calendarId=calendar_id).execute().get('items', [])
+        for existing_event in existing_events:
+            summary_match  = existing_event['summary'] == event['summary']
+            if summary_match:
+                timezones_match = (
+                    existing_event['start']['timeZone'] == event['start']['timeZone'] and 
+                    existing_event['end']['timeZone'] == event['end']['timeZone']
+                )
+                existing_start = parse(existing_event['start']['dateTime'])
+                existing_end = parse(existing_event['end']['dateTime'])
+                
+                if (existing_start == new_start) and (existing_end == new_end) and timezones_match:
+                    logging.info(f"Duplicate event detected: {existing_event.get('htmlLink')}")
+                    return existing_event
+                else:
+                    # Update the event if the start, end datetime or timezone has changed
+                    updated_event = update_event(service, calendar_id, existing_event['id'], event)
+                    logging.info(f"Event updated: {updated_event.get('htmlLink')}")
+                    return updated_event
+
+        # Create new event if there are no matches with existing events
+        created_event = create_event(service, calendar_id, event)
+        logging.info(f"Event created: {created_event.get('htmlLink')}")
+        return created_event
+    except HttpError as error:
+        logging.error(f"An error occurred while syncing an event: {error}")
         raise
 
 
