@@ -18,7 +18,11 @@ def extract_duration(task_summary: str) -> Optional[int]:
     """
     Extracts the duration from the task summary.
     Duration can be specified in minutes or hours inside brackets [].
-    Examples: "Task [30]" means 30 minutes, "Task [2h]" means 2 hours.
+    Examples: "Task [30]" means 30 minutes, "Task [2h]" means 120 minutes.
+
+    Valid unit indicators for time between brackets are: minutes, minutos, mins, min, m, hours, hour, hora, horas, hs, h.
+    - In case the time unit isn't specified, it assumes minutes.
+    - In case multiple time durations are found, they are added together.
 
     Parameters:
         task_summary (str): The summary of the task.
@@ -26,20 +30,35 @@ def extract_duration(task_summary: str) -> Optional[int]:
     Returns:
         Optional[int]: Duration in minutes as an integer if found, otherwise None.
     """
-    duration = None
-    # Regex to match duration in minutes or hours inside brackets
-    match = re.search(r'\[(\d+)(h|hours|horas|hs)?\]', task_summary, re.IGNORECASE)
+    # Define the regex pattern for different time formats
+    pattern = re.compile(
+        r'\[(\d+)\s*(hours?|hrs?|h|horas?|hora|mins?|minutes?|min|m|minutos?)?\s*(\d+)?\s*(mins?|minutes?|min|m|minutos?)?\]',
+        re.IGNORECASE
+    )
     
-    if match:
-        value = int(match.group(1))
-        if match.group(2):
-            # Convert hours to minutes if the duration is specified in hours
-            duration = value * 60
-        else:
-            # Use the value as is if the duration is specified in minutes
-            duration = value
-            
-    return duration
+    matches = pattern.findall(task_summary)
+    
+    if not matches:
+        return None  # Return None if no matches are found
+    
+    total_minutes = 0
+    
+    for match in matches:
+        hours, hour_unit, minutes, minute_unit = match
+        
+        # Convert hours to minutes if hour unit is present
+        if hours:
+            hours = int(hours)
+            if hour_unit and ('hour' in hour_unit.lower() or 'hora' in hour_unit.lower() or 'h' in hour_unit.lower()):
+                total_minutes += hours * 60
+            else:
+                total_minutes += hours  # If no unit or minute unit, assume the number is in minutes
+        
+        # Add minutes if minute unit is present
+        if minutes:
+            total_minutes += int(minutes)
+    
+    return total_minutes
 
 
 def sync_todoist_to_gcal(default_event_duration: int = 30) -> None:
