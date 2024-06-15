@@ -66,6 +66,10 @@ This Python script synchronizes tasks from Todoist into Google Calendar, adding 
 
     The script provides default reminder settings. You can customize the reminder types (e.g., email, pop-up) and times (e.g., 10 minutes before, 1 hour before) in the `create_event_with_reminder` function.
 
+- **Rescheduling Events:**
+
+    Calendar events are rescheduled when corresponding tasks in Todoist are modified. This ensures that your Google Calendar stays up-to-date with any changes made in Todoist (so long as the task summaries stay the same).
+
 ## Logging
 
 The script logs relevant information and errors to help with troubleshooting. Check the log file `sync.log` for details on the script's execution.
