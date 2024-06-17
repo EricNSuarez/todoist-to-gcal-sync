@@ -1,4 +1,5 @@
 import logging
+import re
 from dateutil.parser import parse
 from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
@@ -13,6 +14,41 @@ logging.basicConfig(
     filemode="a",
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+pattern = re.compile(
+    r'\[(\d+)\s*(hours?|hrs?|h|horas?|hora|mins?|minutes?|min|m|minutos?)?\s*(\d+)?\s*(mins?|minutes?|min|m|minutos?)?\]',
+    re.IGNORECASE
+)
+
+def remove_duration_pattern(summary: str) -> str:
+    """
+    Remove the duration pattern from the summary.
+    
+    Parameters:
+        summary (str): The task summary from which the duration pattern needs to be removed.
+    
+    Returns:
+        str: The summary with the duration pattern removed.
+    """
+    
+    return re.sub(' +', ' ', pattern.sub(' ', summary)).strip()
+
+
+def summaries_are_identical(summary1: str, summary2: str) -> bool:
+    """
+    Compare two summaries excluding the duration pattern.
+    
+    Parameters:
+        summary1 (str): The first task summary.
+        summary2 (str): The second task summary.
+        
+    Returns:
+        bool: True if the summaries are identical excluding the duration pattern, False otherwise.
+    """
+    cleaned_summary1 = remove_duration_pattern(summary1)
+    cleaned_summary2 = remove_duration_pattern(summary2)
+    return cleaned_summary1 == cleaned_summary2
+
 
 def create_gcal_service() -> Resource:
     """
@@ -114,7 +150,7 @@ def sync_event(service: Resource, calendar_id: str, event: Dict[str, Any]) -> Di
         new_end = parse(event['end']['dateTime']).replace(tzinfo=None)
         existing_events = service.events().list(calendarId=calendar_id).execute().get('items', [])
         for existing_event in existing_events:
-            summary_match  = existing_event['summary'] == event['summary']
+            summary_match  = summaries_are_identical(existing_event['summary'], event['summary'])
             if summary_match:
                 timezones_match = (
                     existing_event['start']['timeZone'] == event['start']['timeZone'] and 
